@@ -10,7 +10,7 @@ import {
   useColorScheme,
   View
 } from 'react-native';
-import { useState } from "react";
+import { useState , useEffect} from "react";
 
 
 //import {Picker} from '@react-native-community/picker';
@@ -52,10 +52,7 @@ async function getCameraLocations() {
   });
 
 
-  console.log(cameras.length)
-
-
-  return responseJson;
+  return cameras;
   } catch (error) {
   console.error(error);
   }
@@ -81,9 +78,30 @@ async function getCameraData(id:string) {
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
   const [selectedValue, setSelectedValue] = useState("java");
+  const [locations, setLocations] = useState([{id: "0", name: "loading"}])
+  const [initialized, setInitialized] = useState(false);
   //ei välttis tarvii, alemmasta saa myös id:t
   //getCameras()
-  let cameras = getCameraLocations()
+
+
+  useEffect(() => {
+    async function initialize() {
+      let cameras =  await getCameraLocations()
+      setLocations(cameras)
+    }
+    initialize()
+ }, [])
+
+  /*
+  if (!initialized) {
+    let cameras =  await getCameraLocations()
+
+    
+    //setLocations(cameras)
+    console.log("ok")
+    setInitialized(true)
+  }
+  */
 
   return (
     <SafeAreaView >
@@ -96,8 +114,10 @@ const App = () => {
         onValueChange={(itemValue, itemIndex) =>
           setSelectedValue(itemValue)
         }>
-        <Picker.Item label="Java" value="java" />
-        <Picker.Item label="JavaScript" value="js" />
+        {locations.map((item, index) => {
+            return <Picker.Item value={item.id} label={item.name} key={index} />
+        })
+        }
       </Picker>
 
 
@@ -126,38 +146,8 @@ const styles = StyleSheet.create({
 });
 
 export default App;
-
-
 /*
-
-      <Picker
-        selectedValue={selectedValue}
-        style={{ height: 50, width: 150 }}
-        onValueChange={(itemValue, itemIndex) => setSelectedValue(itemValue)}
-      >
-        <Picker.Item label="first" value="1" />
-        <Picker.Item label="second" value="2" />
-      </Picker>
-
-
-      <Picker
-        selectedValue={selectedValue}
-        style={{height: 50, width: 100}}
-        onValueChange={(itemValue, itemIndex) =>
-          setSelectedValue(itemValue)
-        }>
         <Picker.Item label="Java" value="java" />
         <Picker.Item label="JavaScript" value="js" />
-      </Picker>
-
-
-        <RNPickerSelect
-            onValueChange={(value) => setSelectedValue(value)}
-            items={[
-                { label: 'Football', value: 'football' },
-                { label: 'Baseball', value: 'baseball' },
-                { label: 'Hockey', value: 'hockey' },
-            ]}
-        />
 
 */
