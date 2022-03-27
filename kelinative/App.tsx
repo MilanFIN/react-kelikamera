@@ -2,21 +2,33 @@
 
 import React from 'react';
 import {
+  Alert,
+  PermissionsAndroid,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   useColorScheme,
-  View
+  View,
 } from 'react-native';
 import { useState , useEffect} from "react";
+//import Geolocation from '@react-native-community/geolocation';
 
+import RNLocation from 'react-native-location';
 
 //import {Picker} from '@react-native-community/picker';
 import {Picker} from  '@react-native-picker/picker';
 //import RNPickerSelect from 'react-native-picker-select';
 
+
+
+
+RNLocation.configure({ 
+  distanceFilter: 5000,
+  //desiredAccuracy: {"android": "lowPower"}
+
+});
 
 async function GetAllCameras() {
   try {
@@ -48,7 +60,11 @@ async function getCameraLocations() {
     let province = element.properties.municipality
     let x = element.geometry.coordinates[0]
     let y = element.geometry.coordinates[1]
-    cameras.push({name: name + ", " + mun + ", " + province, id: id})
+    let status = element.properties.collectionStatus
+    if (status == "GATHERING") {
+      cameras.push({name: name + ", " + mun , id: id, x: x, y:y})
+
+    }
   });
 
 
@@ -86,9 +102,44 @@ const App = () => {
 
   useEffect(() => {
     async function initialize() {
+
       let cameras =  await getCameraLocations()
       setLocations(cameras)
+
+        
+
+      
+    RNLocation.requestPermission({
+      ios: "whenInUse",
+      android: {
+        detail: "coarse"
+      }
+    }).then(granted => {
+      if (granted) {
+        this.locationSubscription = RNLocation.subscribeToLocationUpdates(locs => {
+          let lat = locs[0].latitude;
+          let lon = locs[0].longitude;
+          console.log('locations: ', lat, lon);
+
+
+          //TÄSSÄ PITÄIS SORTTAA KAMERAT
+
+          //locations.sort()
+
+        })
+      }
+      else {
+        console.log("no gps")
+        Alert.alert("Allow location permissions to sort cameras based on distance to current position")
+      }
+      
+    })
+        
+        
+
+
     }
+
     initialize()
  }, [])
 
