@@ -25,9 +25,18 @@ import {Picker} from  '@react-native-picker/picker';
 
 
 RNLocation.configure({ 
-  distanceFilter: 5000,
+  distanceFilter: 0,
   //desiredAccuracy: {"android": "lowPower"}
 
+});
+
+locSub = RNLocation.subscribeToLocationUpdates(locs => {
+
+    let lat = locs[0].latitude;
+    let lon = locs[0].longitude;
+    //let lat = loc.latitude
+    //let lon = loc.longitude
+    console.log('location2: ', lat, lon);
 });
 
 async function GetAllCameras() {
@@ -104,7 +113,7 @@ const App = () => {
     async function initialize() {
 
       let cameras =  await getCameraLocations()
-      setLocations(cameras)
+      //setLocations(cameras)
 
         
 
@@ -116,15 +125,29 @@ const App = () => {
       }
     }).then(granted => {
       if (granted) {
-        this.locationSubscription = RNLocation.subscribeToLocationUpdates(locs => {
-          let lat = locs[0].latitude;
-          let lon = locs[0].longitude;
-          console.log('locations: ', lat, lon);
+        //let locationSubscription = RNLocation.subscribeToLocationUpdates(locs => {
+        RNLocation.getLatestLocation({ timeout: 60000 }).then(loc => {
+          //let lat = locs[0].latitude;
+          //let lon = locs[0].longitude;
+          let lat = loc.latitude
+          let lon = loc.longitude
+          console.log('location: ', lat, lon);
 
 
           //TÄSSÄ PITÄIS SORTTAA KAMERAT
 
-          //locations.sort()
+          let sortedLocs = cameras
+          console.log(sortedLocs.length)
+          sortedLocs.sort( function(a, b) { 
+
+            const aDist = Math.abs(a.x - lat) + Math.abs(a.y - lon)
+            const bDist = Math.abs(b.x - lat) + Math.abs(b.y - lon)
+
+            
+            return aDist - bDist;
+          })
+          setLocations(sortedLocs)
+            //locations.sort()
 
         })
       }
