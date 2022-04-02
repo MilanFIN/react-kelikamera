@@ -11,6 +11,8 @@ import {
   Text,
   useColorScheme,
   View,
+  Button,
+  FlatList,
 } from 'react-native';
 import { useState , useEffect} from "react";
 //import Geolocation from '@react-native-community/geolocation';
@@ -30,14 +32,6 @@ RNLocation.configure({
 
 });
 
-locSub = RNLocation.subscribeToLocationUpdates(locs => {
-
-    let lat = locs[0].latitude;
-    let lon = locs[0].longitude;
-    //let lat = loc.latitude
-    //let lon = loc.longitude
-    console.log('location2: ', lat, lon);
-});
 
 async function GetAllCameras() {
   try {
@@ -90,10 +84,13 @@ async function getCameraData(id:string) {
     'https://tie.digitraffic.fi/api/v1/data/camera-data/'+id,
     );
     let responseJson = await response.json();
-    //console.log(responseJson);
+    let result = []
+    responseJson.cameraStations[0].cameraPresets.forEach(val => {
+      result.push({"label": val.presentationName, value: val.imageUrl})
+    });
 
 
-    return responseJson;
+    return result;
     } catch (error) {
     console.error(error);
     }
@@ -104,6 +101,7 @@ const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
   const [selectedValue, setSelectedValue] = useState("java");
   const [locations, setLocations] = useState([{id: "0", name: "loading"}])
+  const [cameraButtons, setCameraButtons] = useState([{label: "temp", value: ""}])
   const [initialized, setInitialized] = useState(false);
   //ei välttis tarvii, alemmasta saa myös id:t
   //getCameras()
@@ -115,7 +113,6 @@ const App = () => {
       let cameras =  await getCameraLocations()
       //setLocations(cameras)
 
-        
 
       
     RNLocation.requestPermission({
@@ -134,7 +131,6 @@ const App = () => {
           console.log('location: ', lat, lon);
 
 
-          //TÄSSÄ PITÄIS SORTTAA KAMERAT
 
           let sortedLocs = cameras
           console.log(sortedLocs.length)
@@ -146,9 +142,12 @@ const App = () => {
             
             return aDist - bDist;
           })
-          setLocations(sortedLocs)
-            //locations.sort()
-
+          if (!initialized) {
+            setLocations(sortedLocs)
+            setInitialized(true)
+          }
+          //setLocations(cameras)
+          
         })
       }
       else {
@@ -166,6 +165,17 @@ const App = () => {
     initialize()
  }, [])
 
+ const loadButtons = async(itemValue, itemIndex) => {
+    //setSelectedValue(itemValue)
+    let buttons = await getCameraData(itemValue)
+    setCameraButtons(buttons)
+
+
+
+
+
+ }
+
   /*
   if (!initialized) {
     let cameras =  await getCameraLocations()
@@ -175,27 +185,55 @@ const App = () => {
     console.log("ok")
     setInitialized(true)
   }
+
+            <Button title={"item.label"} ></Button>
+          <Button title={"item.label2"} ></Button>
+
+
   */
 
   return (
-    <SafeAreaView >
+    <SafeAreaView style={{flex:1, flexDirection:"column"}}>
 
-      <View style={{flex: 1, alignSelf:"center", marginTop: "5%", justifyContent:"space-around", flexDirection:"row"}}>
+<View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
 
-      <Picker
-        selectedValue={selectedValue}
-        style={{height: 50, width: 100}}
-        onValueChange={(itemValue, itemIndex) =>
-          setSelectedValue(itemValue)
-        }>
-        {locations.map((item, index) => {
-            return <Picker.Item value={item.id} label={item.name} key={index} />
-        })
+<Picker
+selectedValue={selectedValue}
+style={{height: 50, width: 100}}
+onValueChange={loadButtons}
+>
+{locations.map((item, index) => {
+    return <Picker.Item value={item.id} label={item.name} key={index} />
+})
+}
+</Picker>
+
+<View style={{flex: 1, justifyContent:"center", height: 50, maxHeight: 50}}>
+
+<FlatList
+    horizontal={true}
+        data={
+         cameraButtons
         }
-      </Picker>
+        renderItem={({item}) => <Button title={item.label}></Button>}
+        >
 
 
-      </View>
+        </FlatList>
+
+</View>
+
+
+</View>
+
+
+
+
+      
+
+
+
+
     </SafeAreaView>
   );
 };
@@ -223,5 +261,28 @@ export default App;
 /*
         <Picker.Item label="Java" value="java" />
         <Picker.Item label="JavaScript" value="js" />
+
+*/
+
+/*
+onValueChange={(itemValue, itemIndex) => {
+
+        
+          //setSelectedValue(itemValue)
+          loadButtons(itemValue)
+
+        }
+        }
+
+
+
+{
+cameraButtons.map((item, index) => {
+  <Text>
+  {item.label}
+  </Text>
+
+})
+}
 
 */
