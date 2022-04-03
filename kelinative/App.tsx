@@ -1,4 +1,4 @@
-
+//TODO: next fetch image from button press to img viewer
 
 import React from 'react';
 import {
@@ -13,6 +13,7 @@ import {
   View,
   Button,
   FlatList,
+  Image
 } from 'react-native';
 import { useState , useEffect} from "react";
 //import Geolocation from '@react-native-community/geolocation';
@@ -103,6 +104,7 @@ const App = () => {
   const [locations, setLocations] = useState([{id: "0", name: "loading"}])
   const [cameraButtons, setCameraButtons] = useState([{label: "temp", value: ""}])
   const [initialized, setInitialized] = useState(false);
+  const [imageUri, setImageUri] = useState("https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg")
   //ei välttis tarvii, alemmasta saa myös id:t
   //getCameras()
 
@@ -170,9 +172,12 @@ const App = () => {
     let buttons = await getCameraData(itemValue)
     setCameraButtons(buttons)
 
+    setImageUri(buttons[0].value)
+ }
 
+ const imageButton = async(url) => {
 
-
+  setImageUri(url)
 
  }
 
@@ -215,14 +220,20 @@ onValueChange={loadButtons}
         data={
          cameraButtons
         }
-        renderItem={({item}) => <Button title={item.label}></Button>}
+        renderItem={({item}) => <Button title={item.label} onPress={() => imageButton(item.value)}></Button>}
         >
 
 
         </FlatList>
 
 </View>
+</View>
+<View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
 
+<Image
+        style={{width: 100, height: 100,}}
+        source={{uri: imageUri}}
+      />
 
 </View>
 
