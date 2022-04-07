@@ -1,4 +1,6 @@
-//TODO: next fetch image from button press to img viewer
+//TODO: open map, (show on map) avaa kartalla kameran sijainti, nappula alasvetovalikon vieressä
+
+
 
 import React from 'react';
 import {
@@ -13,9 +15,13 @@ import {
   View,
   Button,
   FlatList,
-  Image
+  Image,
+  TextInput
 } from 'react-native';
 import { useState , useEffect} from "react";
+
+//import openMap from 'react-native-open-maps';
+
 //import Geolocation from '@react-native-community/geolocation';
 
 import RNLocation from 'react-native-location';
@@ -54,19 +60,17 @@ async function getCameraLocations() {
   );
   let responseJson = await response.json();
 
-
-
   let cameras = []
   responseJson.features.forEach(element => {
     let id = element.properties.id
     let name = element.properties.name
     let mun = element.properties.municipality
-    let province = element.properties.municipality
+    let city = element.properties.municipality
     let x = element.geometry.coordinates[0]
     let y = element.geometry.coordinates[1]
     let status = element.properties.collectionStatus
     if (status == "GATHERING") {
-      cameras.push({name: name + ", " + mun , id: id, x: x, y:y})
+      cameras.push({name: name + ", " + mun , id: id, lat: x, lon:y, city:city})
 
     }
   });
@@ -101,78 +105,121 @@ async function getCameraData(id:string) {
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
   const [selectedValue, setSelectedValue] = useState("java");
-  const [locations, setLocations] = useState([{id: "0", name: "loading"}])
+  const [locations, setLocations] = useState([{id: "0", name: "loading", city:"none"}])
+  const [filteredLocations, setFilteredLocations] = useState([{id: "0", name: "loading", city:"none"}])
   const [cameraButtons, setCameraButtons] = useState([{label: "temp", value: ""}])
   const [initialized, setInitialized] = useState(false);
   const [imageUri, setImageUri] = useState("https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg")
+  const [filterText, setFilterText] = useState("")
+  const [lat, setLat] = useState(0.0)
+  const [lon, setLon] = useState(0.0)
   //ei välttis tarvii, alemmasta saa myös id:t
   //getCameras()
 
 
-  useEffect(() => {
-    async function initialize() {
 
-      let cameras =  await getCameraLocations()
-      //setLocations(cameras)
+  useEffect(()=> {
+    (async () => {
+        const location = await getLocation();
+        if (location.length === 2) {
+          setLat(location[0])
+          setLon(location[1])
+          console.log(location)
 
+          console.log(lat)
+          console.log(lon)
+    
+        }
+        let cameras =  await getCameraLocations()
+        let sortedCameras = sortByCity(cameras)//sortByDistance(location[0], location[1], cameras)
+        setLocations(sortedCameras)
+        setFilteredLocations(sortedCameras)
 
+    })()
+  }, []);
+
+ const getLocation = async() => {
+
+  let granted = await  RNLocation.requestPermission({
+                  ios: "whenInUse",
+                  android: {
+                    detail: "coarse"
+                  }})
+    if (granted) {
+      //let locationSubscription = RNLocation.subscribeToLocationUpdates(locs => {
+      let loc = await RNLocation.getLatestLocation({ timeout: 60000 })
       
-    RNLocation.requestPermission({
-      ios: "whenInUse",
-      android: {
-        detail: "coarse"
-      }
-    }).then(granted => {
-      if (granted) {
-        //let locationSubscription = RNLocation.subscribeToLocationUpdates(locs => {
-        RNLocation.getLatestLocation({ timeout: 60000 }).then(loc => {
-          //let lat = locs[0].latitude;
-          //let lon = locs[0].longitude;
-          let lat = loc.latitude
-          let lon = loc.longitude
-          console.log('location: ', lat, lon);
-
-
-
-          let sortedLocs = cameras
-          console.log(sortedLocs.length)
-          sortedLocs.sort( function(a, b) { 
-
-            const aDist = Math.abs(a.x - lat) + Math.abs(a.y - lon)
-            const bDist = Math.abs(b.x - lat) + Math.abs(b.y - lon)
-
-            
-            return aDist - bDist;
-          })
-          if (!initialized) {
-            setLocations(sortedLocs)
-            setInitialized(true)
-          }
-          //setLocations(cameras)
-          
-        })
-      }
-      else {
-        console.log("no gps")
-        Alert.alert("Allow location permissions to sort cameras based on distance to current position")
-      }
       
-    })
-        
-        
+      let lat1 = loc.latitude
+      let lon1 = loc.longitude
 
+
+      return [lat1, lon1]
+
+    }
+    else {
+      console.log("no gps")
+      Alert.alert("Allow location permissions to sort cameras based on distance to current position")
+      return []
 
     }
 
-    initialize()
- }, [])
+    
 
- const loadButtons = async(itemValue, itemIndex) => {
+
+
+ }
+
+ const loadButtons = async(itemValue:string, itemIndex:number) => {
     //setSelectedValue(itemValue)
     let buttons = await getCameraData(itemValue)
     setCameraButtons(buttons)
 
     setImageUri(buttons[0].value)
+ }
+
+ const sortByDistance = (latitude, longitude, locs) => {
+
+  let sortedLocs = locs
+
+  sortedLocs.sort( function(a, b) { 
+
+    const aDist = Math.abs(a.lat - latitude) + Math.abs(a.lon - longitude)
+    const bDist = Math.abs(b.lat - latitude) + Math.abs(b.lon - longitude)
+
+    
+    return aDist - bDist;
+  })
+  return sortedLocs
+  //setLocations(sortedLocs)
+  //filterChange(filterText)
+
+ }
+
+ const sortByCity = (locs) => {
+  let sortedLocs = locs
+  sortedLocs.sort( function(a, b) { 
+
+    const aCity = a.city.toLowerCase()
+    const bCity = b.city.toLowerCase()
+
+    
+    return aCity > bCity;
+  })
+  return sortedLocs
+ }
+
+
+ const sort = (method:string) => {
+   let sortedLocs = locations;
+   if (method == "abc") {
+     sortedLocs = sortByCity(sortedLocs)
+   }
+   else if (method == "distance") {
+     sortedLocs = sortByDistance(lat, lon, sortedLocs)
+   }
+   setLocations(sortedLocs)
+   filterChange(filterText)
  }
 
  const imageButton = async(url) => {
@@ -181,70 +228,70 @@ const App = () => {
 
  }
 
-  /*
-  if (!initialized) {
-    let cameras =  await getCameraLocations()
+ const filterChange = async(text:string) => {
+   setFilterText(text)
+   let filtered = []
+   locations.forEach(location => {
+     if (location.name.toLowerCase().includes(text.toLowerCase())) {
+       filtered.push(location)
+     }
+   })
+   setFilteredLocations(filtered)
+ }
 
-    
-    //setLocations(cameras)
-    console.log("ok")
-    setInitialized(true)
-  }
+ const clearFilter = async() => {
+   filterChange("")
+ }
 
-            <Button title={"item.label"} ></Button>
-          <Button title={"item.label2"} ></Button>
-
-
-  */
-
+  const rasterSourceProps = {
+            id: 'stamenWatercolorSource',
+            tileUrlTemplates: [
+              'https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg',
+            ],
+            tileSize: 256,
+          };
   return (
     <SafeAreaView style={{flex:1, flexDirection:"column"}}>
+      <View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
 
-<View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
+      <TextInput
+        onChangeText={filterChange}
+        value={filterText}
+      ></TextInput>
+      <Button title="X" onPress={() => clearFilter()}/>
+      <Text>Sort by:</Text>
+      <Button title="Distance" onPress={() => sort("distance")}/>
+      <Button title="City name (asc)" onPress={() => sort("abc")}/>
 
-<Picker
-selectedValue={selectedValue}
-style={{height: 50, width: 100}}
-onValueChange={loadButtons}
->
-{locations.map((item, index) => {
-    return <Picker.Item value={item.id} label={item.name} key={index} />
-})
-}
-</Picker>
+      <Picker
+      selectedValue={selectedValue}
+      style={{height: 50, width: 100}}
+      onValueChange={loadButtons}
+      >
+      {filteredLocations.map((item, index) => {
+          return <Picker.Item value={item.id} label={item.name} key={index} />
+      })
+      }
+      </Picker>
 
-<View style={{flex: 1, justifyContent:"center", height: 50, maxHeight: 50}}>
+      <SafeAreaView style={{flex: 1,  height: 50, maxHeight: 50, width: "50%"}}>
+      <FlatList
+          horizontal={true}
+              data={
+              cameraButtons
+              }
+              renderItem={({item}) => <Button title={item.label} onPress={() => imageButton(item.value)} ></Button>}/>
+      </SafeAreaView>
 
-<FlatList
-    horizontal={true}
-        data={
-         cameraButtons
-        }
-        renderItem={({item}) => <Button title={item.label} onPress={() => imageButton(item.value)}></Button>}
-        >
+      </View>
+      <View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
 
-
-        </FlatList>
+      <Image
+              style={{width: 100, height: 100,}}
+              source={{uri: imageUri}}
+            />
 
 </View>
-</View>
-<View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
-
-<Image
-        style={{width: 100, height: 100,}}
-        source={{uri: imageUri}}
-      />
-
-</View>
-
-
-
-
-      
-
-
-
-
     </SafeAreaView>
   );
 };
@@ -270,30 +317,13 @@ const styles = StyleSheet.create({
 
 export default App;
 /*
-        <Picker.Item label="Java" value="java" />
-        <Picker.Item label="JavaScript" value="js" />
+
 
 */
 
 /*
-onValueChange={(itemValue, itemIndex) => {
 
-        
-          //setSelectedValue(itemValue)
-          loadButtons(itemValue)
-
-        }
-        }
-
-
-
-{
-cameraButtons.map((item, index) => {
-  <Text>
-  {item.label}
-  </Text>
-
-})
-}
-
+    <Button
+            onPress={goToYosemite}
+            title="Click To Open Maps 🗺" />
 */
