@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { useState , useEffect} from "react";
 
-//import openMap from 'react-native-open-maps';
+import openMap from 'react-native-open-maps';
 
 //import Geolocation from '@react-native-community/geolocation';
 
@@ -66,8 +66,8 @@ async function getCameraLocations() {
     let name = element.properties.name
     let mun = element.properties.municipality
     let city = element.properties.municipality
-    let x = element.geometry.coordinates[0]
-    let y = element.geometry.coordinates[1]
+    let y = element.geometry.coordinates[0]
+    let x = element.geometry.coordinates[1]
     let status = element.properties.collectionStatus
     if (status == "GATHERING") {
       cameras.push({name: name + ", " + mun , id: id, lat: x, lon:y, city:city})
@@ -113,6 +113,8 @@ const App = () => {
   const [filterText, setFilterText] = useState("")
   const [lat, setLat] = useState(0.0)
   const [lon, setLon] = useState(0.0)
+  const [sortMode, setSortMode] = useState("distance")
+  const [cameraLocation, setCameraLocation] = useState({lat:0, lon:0})
   //ei välttis tarvii, alemmasta saa myös id:t
   //getCameras()
 
@@ -124,14 +126,10 @@ const App = () => {
         if (location.length === 2) {
           setLat(location[0])
           setLon(location[1])
-          console.log(location)
-
-          console.log(lat)
-          console.log(lon)
     
         }
         let cameras =  await getCameraLocations()
-        let sortedCameras = sortByCity(cameras)//sortByDistance(location[0], location[1], cameras)
+        let sortedCameras = sortByDistance(location[0], location[1], cameras)//sortByDistance(location[0], location[1], cameras)
         setLocations(sortedCameras)
         setFilteredLocations(sortedCameras)
 
@@ -173,7 +171,10 @@ const App = () => {
  const loadButtons = async(itemValue:string, itemIndex:number) => {
     //setSelectedValue(itemValue)
     let buttons = await getCameraData(itemValue)
-    setCameraButtons(buttons)
+    console.log()
+    let latitude = filteredLocations[itemIndex].lat
+    let lognitude = filteredLocations[itemIndex].lon
+    setCameraLocation({lat: latitude, lon:lognitude})
 
     setImageUri(buttons[0].value)
  }
@@ -187,9 +188,19 @@ const App = () => {
     const aDist = Math.abs(a.lat - latitude) + Math.abs(a.lon - longitude)
     const bDist = Math.abs(b.lat - latitude) + Math.abs(b.lon - longitude)
 
+    if (aDist > bDist) {
+      return 1
+    }
+    if (aDist < bDist) {
+      return -1
+    }
+    else {
+      return 0
+    }
     
-    return aDist - bDist;
   })
+
+  console.log(sortedLocs[0])
   return sortedLocs
   //setLocations(sortedLocs)
   //filterChange(filterText)
@@ -218,6 +229,7 @@ const App = () => {
    else if (method == "distance") {
      sortedLocs = sortByDistance(lat, lon, sortedLocs)
    }
+   setSortMode(method)
    setLocations(sortedLocs)
    filterChange(filterText)
  }
@@ -243,13 +255,25 @@ const App = () => {
    filterChange("")
  }
 
-  const rasterSourceProps = {
-            id: 'stamenWatercolorSource',
-            tileUrlTemplates: [
-              'https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg',
-            ],
-            tileSize: 256,
-          };
+ const refreshLocation = async() => {
+    const location = await getLocation();
+    console.log(location)
+    if (location.length === 2) {
+      setLat(location[0])
+      setLon(location[1])
+
+    if (sortMode == "distance") {
+      let sorted = sortByDistance(locations,location[0], location[1] )//sortByDistance(location[0], location[1], cameras)
+      setLocations(sorted)
+      setFilteredLocations(sorted)
+      setFilterText("")
+    }  
+  }
+ }
+ const showMap = (latitude: number, longitude: number) => {
+  openMap({ latitude:latitude, longitude: longitude });
+ }
+
   return (
     <SafeAreaView style={{flex:1, flexDirection:"column"}}>
       <View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
@@ -259,6 +283,10 @@ const App = () => {
         value={filterText}
       ></TextInput>
       <Button title="X" onPress={() => clearFilter()}/>
+      <Text>Current location: {lat.toFixed(5)}, {lon.toFixed(5)}</Text>
+      <Button title="show on map" onPress={() => showMap(lat, lon)}></Button>
+      <Button title="Refresh location" onPress={() => refreshLocation()}/>
+
       <Text>Sort by:</Text>
       <Button title="Distance" onPress={() => sort("distance")}/>
       <Button title="City name (asc)" onPress={() => sort("abc")}/>
@@ -282,6 +310,8 @@ const App = () => {
               }
               renderItem={({item}) => <Button title={item.label} onPress={() => imageButton(item.value)} ></Button>}/>
       </SafeAreaView>
+      <Text>Camera location: {cameraLocation.lat.toFixed(5)}, {cameraLocation.lon.toFixed(5)}</Text>
+      <Button title="show on map" onPress={() => showMap(cameraLocation.lat, cameraLocation.lon)}></Button>
 
       </View>
       <View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
