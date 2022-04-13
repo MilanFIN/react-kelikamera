@@ -1,4 +1,4 @@
-//TODO: open map, (show on map) avaa kartalla kameran sijainti, nappula alasvetovalikon vieressä
+//TODO: jos ei saa sijaintia, niin aakkosjärjestys
 
 
 
@@ -10,13 +10,13 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
   useColorScheme,
   View,
-  Button,
   FlatList,
   Image,
-  TextInput
+  TextInput,
+  TouchableHighlight,
+  TouchableOpacity
 } from 'react-native';
 import { useState , useEffect} from "react";
 
@@ -31,6 +31,12 @@ import {Picker} from  '@react-native-picker/picker';
 //import RNPickerSelect from 'react-native-picker-select';
 
 
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+
+ //';
+import { Button, Text } from 'react-native-paper';
+import { Item } from 'react-native-paper/lib/typescript/components/Drawer/Drawer';
 
 
 RNLocation.configure({ 
@@ -39,19 +45,25 @@ RNLocation.configure({
 
 });
 
-
-async function GetAllCameras() {
-  try {
-  let response = await fetch(
-  'https://tie.digitraffic.fi/api/v1/data/camera-data',
-  );
-  let responseJson = await response.json();
-  console.log(responseJson);
-  return responseJson;
-  } catch (error) {
-  console.error(error);
-  }
+function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat2-lat1);  // deg2rad below
+  var dLon = deg2rad(lon2-lon1); 
+  var a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ; 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c; // Distance in km
+  return d;
 }
+
+function deg2rad(deg) {
+  return deg * (Math.PI/180)
+}
+
+
 
 async function getCameraLocations() {
   try {
@@ -63,14 +75,15 @@ async function getCameraLocations() {
   let cameras = []
   responseJson.features.forEach(element => {
     let id = element.properties.id
-    let name = element.properties.name
+    let name = element.properties.names.fi
     let mun = element.properties.municipality
     let city = element.properties.municipality
     let y = element.geometry.coordinates[0]
     let x = element.geometry.coordinates[1]
+    let distance = 0
     let status = element.properties.collectionStatus
     if (status == "GATHERING") {
-      cameras.push({name: name + ", " + mun , id: id, lat: x, lon:y, city:city})
+      cameras.push({name: name + ", " + mun , id: id, lat: x, lon:y, city:city, distance: distance})
 
     }
   });
@@ -90,6 +103,7 @@ async function getCameraData(id:string) {
     );
     let responseJson = await response.json();
     let result = []
+    console.log(responseJson)
     responseJson.cameraStations[0].cameraPresets.forEach(val => {
       result.push({"label": val.presentationName, value: val.imageUrl})
     });
@@ -102,11 +116,13 @@ async function getCameraData(id:string) {
   
 }
 
+
+
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
   const [selectedValue, setSelectedValue] = useState("java");
-  const [locations, setLocations] = useState([{id: "0", name: "loading", city:"none"}])
-  const [filteredLocations, setFilteredLocations] = useState([{id: "0", name: "loading", city:"none"}])
+  const [locations, setLocations] = useState([{id: "0", name: "loading", city:"none", distance:0, lat:0, lon:0}])
+  const [filteredLocations, setFilteredLocations] = useState([{id: "0", name: "loading", city:"none", distance:0, lat:0, lon:0}])
   const [cameraButtons, setCameraButtons] = useState([{label: "temp", value: ""}])
   const [initialized, setInitialized] = useState(false);
   const [imageUri, setImageUri] = useState("https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg")
@@ -122,16 +138,28 @@ const App = () => {
 
   useEffect(()=> {
     (async () => {
+        let cameras =  await getCameraLocations()
+        let sortedCameras = []
         const location = await getLocation();
         if (location.length === 2) {
           setLat(location[0])
           setLon(location[1])
+          sortedCameras = sortByDistance(location[0], location[1], cameras)//sortByDistance(location[0], location[1], cameras)
+
+
+          sortedCameras.forEach(l => {
+            l.distance = getDistanceFromLatLonInKm(location[0], location[1], l.lat, l.lon)
+          })
     
         }
-        let cameras =  await getCameraLocations()
-        let sortedCameras = sortByDistance(location[0], location[1], cameras)//sortByDistance(location[0], location[1], cameras)
+        else {
+          sortedCameras = sortByCity(cameras)//sortByDistance(location[0], location[1], cameras)
+
+        }
         setLocations(sortedCameras)
         setFilteredLocations(sortedCameras)
+
+        loadInitial(sortedCameras[0].id, sortedCameras[0].lat, sortedCameras[0].lon)
 
     })()
   }, []);
@@ -168,15 +196,29 @@ const App = () => {
 
  }
 
+ const loadInitial = async(id:string, latitude:number, lognitude:number) => {
+  //setSelectedValue(itemValue)
+  let buttons = await getCameraData(id)
+  setCameraLocation({lat: latitude, lon:lognitude})
+
+  setCameraButtons(buttons)
+
+  setImageUri(buttons[0].value)
+}
+
  const loadButtons = async(itemValue:string, itemIndex:number) => {
-    //setSelectedValue(itemValue)
+    //console.log(filteredLocations[itemIndex])
+    setSelectedValue(itemValue)
+
     let buttons = await getCameraData(itemValue)
-    console.log()
     let latitude = filteredLocations[itemIndex].lat
     let lognitude = filteredLocations[itemIndex].lon
     setCameraLocation({lat: latitude, lon:lognitude})
 
+    setCameraButtons(buttons)
+
     setImageUri(buttons[0].value)
+
  }
 
  const sortByDistance = (latitude, longitude, locs) => {
@@ -200,7 +242,6 @@ const App = () => {
     
   })
 
-  console.log(sortedLocs[0])
   return sortedLocs
   //setLocations(sortedLocs)
   //filterChange(filterText)
@@ -232,6 +273,9 @@ const App = () => {
    setSortMode(method)
    setLocations(sortedLocs)
    filterChange(filterText)
+
+   loadInitial(sortedLocs[0].id, sortedLocs[0].lat, sortedLocs[0].lon)
+
  }
 
  const imageButton = async(url) => {
@@ -257,10 +301,13 @@ const App = () => {
 
  const refreshLocation = async() => {
     const location = await getLocation();
-    console.log(location)
     if (location.length === 2) {
       setLat(location[0])
       setLon(location[1])
+      locations.forEach(l => {
+        l.distance = getDistanceFromLatLonInKm(location[0], location[1], l.lat, l.lon)
+      })
+
 
     if (sortMode == "distance") {
       let sorted = sortByDistance(locations,location[0], location[1] )//sortByDistance(location[0], location[1], cameras)
@@ -276,48 +323,121 @@ const App = () => {
 
   return (
     <SafeAreaView style={{flex:1, flexDirection:"column"}}>
-      <View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
+      <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
 
-      <TextInput
-        onChangeText={filterChange}
-        value={filterText}
-      ></TextInput>
-      <Button title="X" onPress={() => clearFilter()}/>
-      <Text>Current location: {lat.toFixed(5)}, {lon.toFixed(5)}</Text>
-      <Button title="show on map" onPress={() => showMap(lat, lon)}></Button>
-      <Button title="Refresh location" onPress={() => refreshLocation()}/>
+        <View style={{flexDirection:"row", justifyContent:"space-around"}}>
+          <TextInput
+            onChangeText={filterChange}
+            value={filterText}
+            placeholder="Filter"
+            style={{width:"80%"}}
+            ></TextInput>
 
-      <Text>Sort by:</Text>
-      <Button title="Distance" onPress={() => sort("distance")}/>
-      <Button title="City name (asc)" onPress={() => sort("abc")}/>
+
+          <TouchableOpacity onPress={() => clearFilter()}>
+
+          <MaterialIcon name="clear" size={40} color="#f00"  />
+
+          </TouchableOpacity>
+
+        </View>
+        <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
+
+          <Text style={{marginLeft:"0%"}}>Current location: {lat.toFixed(5)}, {lon.toFixed(5)} </Text>
+
+
+          <TouchableOpacity onPress={() => showMap(lat, lon)}>
+
+          <MaterialCommunityIcon name="google-maps" size={40} color="#f00"   />
+          </TouchableOpacity>
+
+          <Text> </Text>
+
+
+
+          <TouchableOpacity onPress={() => refreshLocation()}>
+          <MaterialIcon name="refresh" size={40} color="#0f0"  />
+        </TouchableOpacity>
+
+
+        </View>
+        <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
+          <Text>Sort by: </Text>
+          <Button
+            mode="contained"
+            color={BUTTONCOLOR}
+
+            style={styles.button}
+            onPress={() => sort("distance")} >
+            <Text style={styles.buttonText}>Distance</Text>
+          </Button>
+
+          <Text> </Text>
+
+
+          <Button
+            mode="contained"
+            color={BUTTONCOLOR}
+
+            style={styles.button}
+            onPress={() => sort("abc")}>
+            <Text style={styles.buttonText}>City name (asc)</Text>
+          </Button>
+
+
+        </View>
 
       <Picker
       selectedValue={selectedValue}
-      style={{height: 50, width: 100}}
+      style={{height: 50, width: "100%"}}
       onValueChange={loadButtons}
       >
       {filteredLocations.map((item, index) => {
-          return <Picker.Item value={item.id} label={item.name} key={index} />
+          return <Picker.Item value={item.id} label={item.name + ", "+item.distance.toFixed(1).toString() + "km"} key={index} />
       })
       }
       </Picker>
 
-      <SafeAreaView style={{flex: 1,  height: 50, maxHeight: 50, width: "50%"}}>
+      <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
+
+        <Text>Camera location: {cameraLocation.lat.toFixed(5)}, {cameraLocation.lon.toFixed(5)}</Text>
+
+        <TouchableOpacity onPress={() => showMap(cameraLocation.lat, cameraLocation.lon)}>
+          <MaterialCommunityIcon name="google-maps" size={40} color="#f00"  />
+        </TouchableOpacity>
+      </View>
+      <SafeAreaView style={{flex: 1,  height: 50, maxHeight: 50, width: "100%"}}>
       <FlatList
           horizontal={true}
               data={
               cameraButtons
               }
-              renderItem={({item}) => <Button title={item.label} onPress={() => imageButton(item.value)} ></Button>}/>
+              renderItem={({item}) => 
+              
+
+
+              <Button
+              mode="contained"
+              color={BUTTONCOLOR}
+  
+              style={styles.button}
+              onPress={() => imageButton(item.value)} 
+              >
+             <Text style={styles.buttonText}>{item.label} </Text>
+            </Button>
+  
+              
+              }/>
       </SafeAreaView>
-      <Text>Camera location: {cameraLocation.lat.toFixed(5)}, {cameraLocation.lon.toFixed(5)}</Text>
-      <Button title="show on map" onPress={() => showMap(cameraLocation.lat, cameraLocation.lon)}></Button>
+
+
+
 
       </View>
-      <View style={{flex: 1,  marginTop: "5%", justifyContent:"flex-start"}}>
+      <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
 
       <Image
-              style={{width: 100, height: 100,}}
+              style={{width: "100%", height: "100%",}}
               source={{uri: imageUri}}
             />
 
@@ -327,33 +447,21 @@ const App = () => {
 };
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  button: {
+    borderRadius: 10,
+    //width: 50,
+    height: 50,
+    justifyContent: 'center',
+
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
+  buttonText:
+  {
+    color:"#ffffff"
+  }
 });
 
+const BUTTONCOLOR = "#6666FF"
+
+
+
 export default App;
-/*
-
-
-*/
-
-/*
-
-    <Button
-            onPress={goToYosemite}
-            title="Click To Open Maps 🗺" />
-*/
