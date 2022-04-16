@@ -1,4 +1,4 @@
-//TODO: jos ei saa sijaintia, niin aakkosjärjestys
+//TODO: värit kilsakuvauksiin
 
 
 
@@ -44,6 +44,26 @@ RNLocation.configure({
   //desiredAccuracy: {"android": "lowPower"}
 
 });
+
+const getItemColor = (dist, max) => {
+  let percent = dist/max * 100
+
+  let r = 0
+  let g = 0
+  if (percent < 50) {
+    g = 225
+    r = 225*percent/100 * 2
+  }
+  else {
+    r = 225
+    g = 225 - (225 * (percent-50)/100 *2);
+  }
+  //255
+  //const r = 225 * percent/100;
+  //const g = 225 - (225 * percent/100);
+  return 'rgb('+r+','+g+',0)';
+}
+
 
 function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
   var R = 6371; // Radius of the earth in km
@@ -131,6 +151,7 @@ const App = () => {
   const [lon, setLon] = useState(0.0)
   const [sortMode, setSortMode] = useState("distance")
   const [cameraLocation, setCameraLocation] = useState({lat:0, lon:0})
+  const [maxDistance, setMaxDistance] = useState(100)
   //ei välttis tarvii, alemmasta saa myös id:t
   //getCameras()
 
@@ -144,13 +165,13 @@ const App = () => {
         if (location.length === 2) {
           setLat(location[0])
           setLon(location[1])
-          sortedCameras = sortByDistance(location[0], location[1], cameras)//sortByDistance(location[0], location[1], cameras)
 
-
-          sortedCameras.forEach(l => {
+          cameras.forEach(l => {
             l.distance = getDistanceFromLatLonInKm(location[0], location[1], l.lat, l.lon)
           })
-    
+          sortedCameras = sortByDistance(location[0], location[1], cameras)//sortByDistance(location[0], location[1], cameras)
+
+          setMaxDistance(sortedCameras[sortedCameras.length -1].distance)
         }
         else {
           sortedCameras = sortByCity(cameras)//sortByDistance(location[0], location[1], cameras)
@@ -227,9 +248,10 @@ const App = () => {
 
   sortedLocs.sort( function(a, b) { 
 
-    const aDist = Math.abs(a.lat - latitude) + Math.abs(a.lon - longitude)
-    const bDist = Math.abs(b.lat - latitude) + Math.abs(b.lon - longitude)
-
+    //const aDist = Math.sqrt( Math.pow(a.lat - latitude, 2) + Math.pow(a.lon - longitude, 2))
+    //const bDist = Math.sqrt( Math.pow(b.lat - latitude, 2) + Math.pow(b.lon - longitude, 2))
+    return a.distance > b.distance
+    /*
     if (aDist > bDist) {
       return 1
     }
@@ -239,6 +261,7 @@ const App = () => {
     else {
       return 0
     }
+    */
     
   })
 
@@ -308,14 +331,18 @@ const App = () => {
         l.distance = getDistanceFromLatLonInKm(location[0], location[1], l.lat, l.lon)
       })
 
+      setMaxDistance(locations[locations.length -1].distance)
 
+    }
     if (sortMode == "distance") {
-      let sorted = sortByDistance(locations,location[0], location[1] )//sortByDistance(location[0], location[1], cameras)
+      let sorted = sortByDistance(location[0], location[1],locations )//sortByDistance(location[0], location[1], cameras)
       setLocations(sorted)
       setFilteredLocations(sorted)
       setFilterText("")
+
+
     }  
-  }
+  
  }
  const showMap = (latitude: number, longitude: number) => {
   openMap({ latitude:latitude, longitude: longitude });
@@ -393,7 +420,8 @@ const App = () => {
       onValueChange={loadButtons}
       >
       {filteredLocations.map((item, index) => {
-          return <Picker.Item value={item.id} label={item.name + ", "+item.distance.toFixed(1).toString() + "km"} key={index} />
+          return <Picker.Item value={item.id} color={getItemColor(item.distance, maxDistance)} label={item.name + ", "+item.distance.toFixed(1).toString() + "km"} key={index} >
+            </Picker.Item>
       })
       }
       </Picker>
