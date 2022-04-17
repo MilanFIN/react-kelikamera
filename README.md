@@ -9,3 +9,5 @@ export PATH=$PATH:$ANDROID_HOME/platform-tools
 
 npm start
 npx react-native run-android
+
+

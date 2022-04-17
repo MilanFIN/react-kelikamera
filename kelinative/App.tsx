@@ -124,8 +124,8 @@ async function getCameraData(id:string) {
     let responseJson = await response.json();
     let result = []
     console.log(responseJson)
-    responseJson.cameraStations[0].cameraPresets.forEach(val => {
-      result.push({"label": val.presentationName, value: val.imageUrl})
+    responseJson.cameraStations[0].cameraPresets.forEach((val, index) => {
+      result.push({"label": val.presentationName, value: val.imageUrl, index: index})
     });
 
 
@@ -143,7 +143,7 @@ const App = () => {
   const [selectedValue, setSelectedValue] = useState("java");
   const [locations, setLocations] = useState([{id: "0", name: "loading", city:"none", distance:0, lat:0, lon:0}])
   const [filteredLocations, setFilteredLocations] = useState([{id: "0", name: "loading", city:"none", distance:0, lat:0, lon:0}])
-  const [cameraButtons, setCameraButtons] = useState([{label: "temp", value: ""}])
+  const [cameraButtons, setCameraButtons] = useState([{label: "temp", value: "", index:0}])
   const [initialized, setInitialized] = useState(false);
   const [imageUri, setImageUri] = useState("https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg")
   const [filterText, setFilterText] = useState("")
@@ -152,8 +152,8 @@ const App = () => {
   const [sortMode, setSortMode] = useState("distance")
   const [cameraLocation, setCameraLocation] = useState({lat:0, lon:0})
   const [maxDistance, setMaxDistance] = useState(100)
-  //ei välttis tarvii, alemmasta saa myös id:t
-  //getCameras()
+  const [buttonIndex, setButtonIndex] = useState(0)
+  const [reverse, setReverse] = useState(false)
 
 
 
@@ -172,9 +172,11 @@ const App = () => {
           sortedCameras = sortByDistance(location[0], location[1], cameras)//sortByDistance(location[0], location[1], cameras)
 
           setMaxDistance(sortedCameras[sortedCameras.length -1].distance)
+          setSortMode("distance")
         }
         else {
           sortedCameras = sortByCity(cameras)//sortByDistance(location[0], location[1], cameras)
+          setSortMode("abc")
 
         }
         setLocations(sortedCameras)
@@ -225,6 +227,7 @@ const App = () => {
   setCameraButtons(buttons)
 
   setImageUri(buttons[0].value)
+  setButtonIndex(0)
 }
 
  const loadButtons = async(itemValue:string, itemIndex:number) => {
@@ -239,6 +242,8 @@ const App = () => {
     setCameraButtons(buttons)
 
     setImageUri(buttons[0].value)
+    setButtonIndex(0)
+
 
  }
 
@@ -287,12 +292,19 @@ const App = () => {
 
  const sort = (method:string) => {
    let sortedLocs = locations;
-   if (method == "abc") {
-     sortedLocs = sortByCity(sortedLocs)
+   if (method == "abc" && sortMode != method) {
+      setReverse(false)
+      sortedLocs = sortByCity(sortedLocs)
    }
-   else if (method == "distance") {
-     sortedLocs = sortByDistance(lat, lon, sortedLocs)
-   }
+   else if (method == "distance" && sortMode != method) {
+      sortedLocs = sortByDistance(lat, lon, sortedLocs)
+      setReverse(false)
+    }
+
+    else {
+      sortedLocs = sortedLocs.reverse()
+      setReverse(!reverse)
+     }
    setSortMode(method)
    setLocations(sortedLocs)
    filterChange(filterText)
@@ -301,10 +313,11 @@ const App = () => {
 
  }
 
- const imageButton = async(url) => {
-
+ const imageButton = async(item) => {
+  console.log(item)
+  const url = item.value
   setImageUri(url)
-
+  setButtonIndex(item.index)
  }
 
  const filterChange = async(text:string) => {
@@ -392,11 +405,14 @@ const App = () => {
           <Text>Sort by: </Text>
           <Button
             mode="contained"
-            color={BUTTONCOLOR}
+            color={sortMode == "distance" ? ACTIVEBUTTONCOLOR : BUTTONCOLOR}
 
             style={styles.button}
             onPress={() => sort("distance")} >
-            <Text style={styles.buttonText}>Distance</Text>
+            <Text style={styles.buttonText}>Distance</Text> 
+            {
+             sortMode == "distance" ? <Text style={styles.buttonText}>{!reverse ? "\u2191": "\u2193"}</Text> : null
+            }
           </Button>
 
           <Text> </Text>
@@ -404,11 +420,14 @@ const App = () => {
 
           <Button
             mode="contained"
-            color={BUTTONCOLOR}
+            color={sortMode == "abc" ? ACTIVEBUTTONCOLOR : BUTTONCOLOR}
 
             style={styles.button}
             onPress={() => sort("abc")}>
             <Text style={styles.buttonText}>City name (asc)</Text>
+            {
+              sortMode == "abc" ? <Text style={styles.buttonText}>{!reverse ? "\u2191": "\u2193"}</Text> : null
+            }
           </Button>
 
 
@@ -446,10 +465,12 @@ const App = () => {
 
               <Button
               mode="contained"
-              color={BUTTONCOLOR}
+              color={
+                item.index == buttonIndex ? ACTIVEBUTTONCOLOR : BUTTONCOLOR
+              }
   
               style={styles.button}
-              onPress={() => imageButton(item.value)} 
+              onPress={() => imageButton(item)} 
               >
              <Text style={styles.buttonText}>{item.label} </Text>
             </Button>
@@ -489,7 +510,7 @@ const styles = StyleSheet.create({
 });
 
 const BUTTONCOLOR = "#6666FF"
-
+const ACTIVEBUTTONCOLOR = "#4444DD"
 
 
 export default App;
