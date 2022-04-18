@@ -1,0 +1,11 @@
+{
+    "translation": {
+      "distance":"Distance",
+	  "cityname": "City name",
+	  "currentlocation": "Current location",
+	  "sort": "Sort by",
+	  "filter": "Filter",
+	  "cameralocation": "Camera location"
+
+    }
+  }

@@ -1,4 +1,4 @@
-//TODO: värit kilsakuvauksiin
+//TODO: namefi ja nameen
 
 
 
@@ -16,7 +16,8 @@ import {
   Image,
   TextInput,
   TouchableHighlight,
-  TouchableOpacity
+  TouchableOpacity,
+  BackHandler
 } from 'react-native';
 import { useState , useEffect} from "react";
 
@@ -36,8 +37,14 @@ import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIc
 
  //';
 import { Button, Text } from 'react-native-paper';
-import { Item } from 'react-native-paper/lib/typescript/components/Drawer/Drawer';
+//import { Item } from 'react-native-paper/lib/typescript/components/Drawer/Drawer';
 
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
+import './assets/i18n/i18n';
+import {useTranslation} from 'react-i18next';
 
 RNLocation.configure({ 
   distanceFilter: 0,
@@ -95,7 +102,8 @@ async function getCameraLocations() {
   let cameras = []
   responseJson.features.forEach(element => {
     let id = element.properties.id
-    let name = element.properties.names.fi
+    let nameFi = element.properties.names.fi
+    let nameEn = element.properties.names.en
     let mun = element.properties.municipality
     let city = element.properties.municipality
     let y = element.geometry.coordinates[0]
@@ -103,7 +111,7 @@ async function getCameraLocations() {
     let distance = 0
     let status = element.properties.collectionStatus
     if (status == "GATHERING") {
-      cameras.push({name: name + ", " + mun , id: id, lat: x, lon:y, city:city, distance: distance})
+      cameras.push({nameFi: nameFi + ", " + mun , nameEn:nameEn +", " + mun,  id: id, lat: x, lon:y, city:city, distance: distance})
 
     }
   });
@@ -135,7 +143,31 @@ async function getCameraData(id:string) {
     }
   
 }
+async function saveLanguage(language) {
+  try {
+    await AsyncStorage.setItem(
+      '@language',
+      language
+    );
+  } catch (error) {
+    // Error saving data
+  }
+};
 
+async function getLanguage() {
+    try {
+      const value = await AsyncStorage.getItem('@language')
+      if(value !== null) {
+        return value
+      }
+      else {
+        return ""
+      }
+    } catch(e) {
+      // error reading value
+      return ""
+    }
+}
 
 
 const App = () => {
@@ -154,11 +186,51 @@ const App = () => {
   const [maxDistance, setMaxDistance] = useState(100)
   const [buttonIndex, setButtonIndex] = useState(0)
   const [reverse, setReverse] = useState(false)
+  const [view, setView] = useState("main")
+  const [language, setLanguage] = useState("fi")
 
 
+  const {t, i18n} = useTranslation();
+  
+  
+  const changeLanguage = value => {
+    i18n
+      .changeLanguage(value)
+      .then(() => setLanguage(value))
+      .catch(err => console.log(err));
+  };
+
+  useEffect(() => {
+    const backAction = () => {
+      
+      console.log(view)
+      if (view != "main") {
+        setView("main")
+        return true;
+      }
+      else {
+        return false;
+      }
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [view]);
 
   useEffect(()=> {
     (async () => {
+        let lang = await getLanguage()
+        if (lang != "") {
+          //setLanguage(lang)
+          changeLanguage(lang)
+
+        }
+
+        
         let cameras =  await getCameraLocations()
         let sortedCameras = []
         const location = await getLocation();
@@ -361,138 +433,192 @@ const App = () => {
   openMap({ latitude:latitude, longitude: longitude });
  }
 
-  return (
-    <SafeAreaView style={{flex:1, flexDirection:"column"}}>
-      <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
+ const pickLanguage = async(lang:string) => {
+  console.log(lang)
+  setLanguage(lang)
+  await saveLanguage(lang)
 
-        <View style={{flexDirection:"row", justifyContent:"space-around"}}>
-          <TextInput
-            onChangeText={filterChange}
-            value={filterText}
-            placeholder="Filter"
-            style={{width:"80%"}}
-            ></TextInput>
+  changeLanguage(lang)
+ }
 
-
-          <TouchableOpacity onPress={() => clearFilter()}>
-
-          <MaterialIcon name="clear" size={40} color="#f00"  />
-
-          </TouchableOpacity>
-
-        </View>
-        <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
-
-          <Text style={{marginLeft:"0%"}}>Current location: {lat.toFixed(5)}, {lon.toFixed(5)} </Text>
-
-
-          <TouchableOpacity onPress={() => showMap(lat, lon)}>
-
-          <MaterialCommunityIcon name="google-maps" size={40} color="#f00"   />
-          </TouchableOpacity>
-
-          <Text> </Text>
-
-
-
-          <TouchableOpacity onPress={() => refreshLocation()}>
-          <MaterialIcon name="refresh" size={40} color="#0f0"  />
+  if (view == "main")
+  {
+    return (
+      <SafeAreaView style={{flex:1, flexDirection:"column"}}>
+        <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
+  
+        <View style={{flexDirection:"row", justifyContent:"flex-end"}}>
+  
+        <TouchableOpacity onPress={() => setView("settings")}>
+          <MaterialIcon name="settings" size={40} color="#aaa"/>
         </TouchableOpacity>
-
-
+  
         </View>
-        <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
-          <Text>Sort by: </Text>
-          <Button
-            mode="contained"
-            color={sortMode == "distance" ? ACTIVEBUTTONCOLOR : BUTTONCOLOR}
-
-            style={styles.button}
-            onPress={() => sort("distance")} >
-            <Text style={styles.buttonText}>Distance</Text> 
-            {
-             sortMode == "distance" ? <Text style={styles.buttonText}>{!reverse ? "\u2191": "\u2193"}</Text> : null
-            }
-          </Button>
-
-          <Text> </Text>
-
-
-          <Button
-            mode="contained"
-            color={sortMode == "abc" ? ACTIVEBUTTONCOLOR : BUTTONCOLOR}
-
-            style={styles.button}
-            onPress={() => sort("abc")}>
-            <Text style={styles.buttonText}>City name (asc)</Text>
-            {
-              sortMode == "abc" ? <Text style={styles.buttonText}>{!reverse ? "\u2191": "\u2193"}</Text> : null
-            }
-          </Button>
-
-
-        </View>
-
-      <Picker
-      selectedValue={selectedValue}
-      style={{height: 50, width: "100%"}}
-      onValueChange={loadButtons}
-      >
-      {filteredLocations.map((item, index) => {
-          return <Picker.Item value={item.id} color={getItemColor(item.distance, maxDistance)} label={item.name + ", "+item.distance.toFixed(1).toString() + "km"} key={index} >
-            </Picker.Item>
-      })
-      }
-      </Picker>
-
-      <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
-
-        <Text>Camera location: {cameraLocation.lat.toFixed(5)}, {cameraLocation.lon.toFixed(5)}</Text>
-
-        <TouchableOpacity onPress={() => showMap(cameraLocation.lat, cameraLocation.lon)}>
-          <MaterialCommunityIcon name="google-maps" size={40} color="#f00"  />
-        </TouchableOpacity>
-      </View>
-      <SafeAreaView style={{flex: 1,  height: 50, maxHeight: 50, width: "100%"}}>
-      <FlatList
-          horizontal={true}
-              data={
-              cameraButtons
-              }
-              renderItem={({item}) => 
-              
-
-
-              <Button
+  
+          <View style={{flexDirection:"row", justifyContent:"space-around"}}>
+            <TextInput
+              onChangeText={filterChange}
+              value={filterText}
+              placeholder={t("filter")}
+              style={{width:"80%"}}
+              ></TextInput>
+  
+  
+            <TouchableOpacity onPress={() => clearFilter()}>
+  
+            <MaterialIcon name="clear" size={40} color="#f00"  />
+  
+            </TouchableOpacity>
+  
+          </View>
+          <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
+  
+            <Text style={{marginLeft:"0%"}}>{t("currentlocation")}: {lat.toFixed(5)}, {lon.toFixed(5)} </Text>
+  
+  
+            <TouchableOpacity onPress={() => showMap(lat, lon)}>
+  
+            <MaterialCommunityIcon name="google-maps" size={40} color="#f00"   />
+            </TouchableOpacity>
+  
+            <Text> </Text>
+  
+  
+  
+            <TouchableOpacity onPress={() => refreshLocation()}>
+            <MaterialIcon name="refresh" size={40} color="#0f0"  />
+          </TouchableOpacity>
+  
+  
+          </View>
+          <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
+            <Text>{t('sort')}: </Text>
+            <Button
               mode="contained"
-              color={
-                item.index == buttonIndex ? ACTIVEBUTTONCOLOR : BUTTONCOLOR
-              }
+              color={sortMode == "distance" ? ACTIVEBUTTONCOLOR : BUTTONCOLOR}
   
               style={styles.button}
-              onPress={() => imageButton(item)} 
-              >
-             <Text style={styles.buttonText}>{item.label} </Text>
+              onPress={() => sort("distance")} >
+              <Text style={styles.buttonText}>{t('distance')}</Text> 
+              {
+               sortMode == "distance" ? <Text style={styles.buttonText}>{!reverse ? "\u2191": "\u2193"}</Text> : null
+              }
             </Button>
   
-              
-              }/>
+            <Text> </Text>
+  
+  
+            <Button
+              mode="contained"
+              color={sortMode == "abc" ? ACTIVEBUTTONCOLOR : BUTTONCOLOR}
+  
+              style={styles.button}
+              onPress={() => sort("abc")}>
+              <Text style={styles.buttonText}>{t('cityname')}</Text>
+              {
+                sortMode == "abc" ? <Text style={styles.buttonText}>{!reverse ? "\u2191": "\u2193"}</Text> : null
+              }
+            </Button>
+  
+  
+          </View>
+  
+        <Picker
+        selectedValue={selectedValue}
+        style={{height: 50, width: "100%"}}
+        onValueChange={loadButtons}
+        >
+        {filteredLocations.map((item, index) => {
+          //nameFi tai nameEn
+          let name = ""
+          if (language == "fi") {
+            name = item.nameFi
+          }
+          else {
+            name = item.nameEn
+          }
+            return <Picker.Item value={item.id} color={getItemColor(item.distance, maxDistance)} label={ name + ", "+item.distance.toFixed(1).toString() + "km"} key={index} >
+              </Picker.Item>
+        })
+        }
+        </Picker>
+  
+        <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
+  
+          <Text>{t("cameralocation")}: {cameraLocation.lat.toFixed(5)}, {cameraLocation.lon.toFixed(5)}</Text>
+  
+          <TouchableOpacity onPress={() => showMap(cameraLocation.lat, cameraLocation.lon)}>
+            <MaterialCommunityIcon name="google-maps" size={40} color="#f00"  />
+          </TouchableOpacity>
+        </View>
+        <SafeAreaView style={{flex: 1,  height: 50, maxHeight: 50, width: "100%"}}>
+        <FlatList
+            horizontal={true}
+                data={
+                cameraButtons
+                }
+                renderItem={({item}) => 
+                
+  
+  
+                <Button
+                mode="contained"
+                color={
+                  item.index == buttonIndex ? ACTIVEBUTTONCOLOR : BUTTONCOLOR
+                }
+    
+                style={styles.button}
+                onPress={() => imageButton(item)} 
+                >
+               <Text style={styles.buttonText}>{item.label} </Text>
+              </Button>
+    
+                
+                }/>
+        </SafeAreaView>
+  
+        </View>
+        <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
+  
+        <Image
+                style={{width: "100%", height: "100%",}}
+                source={{uri: imageUri}}
+              />
+  
+  </View>
       </SafeAreaView>
+    );
 
+  }
+  else if (view == "settings"){
+    return (
 
+      <SafeAreaView>
+          <TouchableOpacity onPress={() => pickLanguage("en")}>
+            <Text>English</Text>
+          </TouchableOpacity>
 
+          <TouchableOpacity onPress={() => pickLanguage("fi")}>
+            <Text>Suomi</Text>
+          </TouchableOpacity>
 
-      </View>
-      <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
+          <Text>
+          </Text>
 
-      <Image
-              style={{width: "100%", height: "100%",}}
-              source={{uri: imageUri}}
-            />
+      </SafeAreaView>
+  
+    )
 
-</View>
-    </SafeAreaView>
-  );
+  }
+  else {
+    return (
+      <SafeAreaView>
+      </SafeAreaView>
+  
+    )
+
+  }
+
 };
 
 const styles = StyleSheet.create({

@@ -1,0 +1,12 @@
+{
+    "translation": {
+      "distance":"Etäisyys",
+	  "cityname": "Nimi",
+	  "currentlocation": "Oma sijainti",
+	  "sort": "Järjestä",
+	  "filter": "Suodata",
+	  "cameralocation": "Kameran sijainti"
+
+
+    }
+  }
