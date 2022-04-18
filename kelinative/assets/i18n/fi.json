@@ -5,7 +5,8 @@
 	  "currentlocation": "Oma sijainti",
 	  "sort": "Järjestä",
 	  "filter": "Suodata",
-	  "cameralocation": "Kameran sijainti"
+	  "cameralocation": "Kameran sijainti",
+	  "chooselanguage": "Valitse kieli"
 
 
     }

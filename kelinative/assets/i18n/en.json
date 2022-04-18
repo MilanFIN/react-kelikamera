@@ -5,7 +5,8 @@
 	  "currentlocation": "Current location",
 	  "sort": "Sort by",
 	  "filter": "Filter",
-	  "cameralocation": "Camera location"
+	  "cameralocation": "Camera location",
+	  "chooselanguage": "Choose language"
 
     }
   }

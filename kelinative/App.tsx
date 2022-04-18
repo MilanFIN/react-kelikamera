@@ -1,6 +1,4 @@
-//TODO: namefi ja nameen
-
-
+//flags from https://github.com/google/region-flags/
 
 import React from 'react';
 import {
@@ -17,7 +15,8 @@ import {
   TextInput,
   TouchableHighlight,
   TouchableOpacity,
-  BackHandler
+  BackHandler,
+  Linking
 } from 'react-native';
 import { useState , useEffect} from "react";
 
@@ -439,6 +438,9 @@ const App = () => {
   await saveLanguage(lang)
 
   changeLanguage(lang)
+
+  setView("main")
+
  }
 
   if (view == "main")
@@ -594,17 +596,44 @@ const App = () => {
     return (
 
       <SafeAreaView>
+        <View style={{marginTop: "30%", height: "100%"}}>
+          <Text style={{alignSelf: "center"}}>{t("chooselanguage")} {"\n"}
+          
+          </Text>
+          <View style={{flex:1, flexDirection:"row", height: "100%", justifyContent: "space-around"}}>
+
           <TouchableOpacity onPress={() => pickLanguage("en")}>
-            <Text>English</Text>
+            
+            <Text style={{alignSelf: "center"}}>English</Text>
+            <Image style={{width: 100, height: 61}} source={require('./assets/i18n/GB.png')} />
+
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => pickLanguage("fi")}>
-            <Text>Suomi</Text>
+            <Text style={{alignSelf: "center"}}>Suomi</Text>
+            <Image style={{width: 100, height: 61}} source={require('./assets/i18n/FI.png')} />
+
           </TouchableOpacity>
 
-          <Text>
-          </Text>
+          </View>
+          
+          <View style={{flex:1}}>
+            <Text style={{alignSelf: "center"}}>
+              Distributed under the
+              <TouchableOpacity onPress={() => Linking.openURL('https://choosealicense.com/licenses/mit/')}>
+                <Text style={{color: 'lightblue'}}> MIT </Text>
+              </TouchableOpacity>
+              licence
+            </Text>
+            <Text style={{alignSelf: "center"}}>
+              See repository in 
+              <TouchableOpacity onPress={() => Linking.openURL('https://github.com/MilanFIN/react-kelikamera')}>
+                <Text style={{color: 'lightblue'}}> GITHUB </Text>
+              </TouchableOpacity>
 
+            </Text>
+          </View>
+        </View>
       </SafeAreaView>
   
     )
