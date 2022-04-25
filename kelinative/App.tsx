@@ -103,6 +103,12 @@ async function getCameraLocations() {
     let id = element.properties.id
     let nameFi = element.properties.names.fi
     let nameEn = element.properties.names.en
+    if (nameEn == null) {
+      nameEn = "<Name not found>"
+    }
+    if (nameFi == null) {
+      nameFi = "<Nimeä ei löydy>"
+    }
     let mun = element.properties.municipality
     let city = element.properties.municipality
     let y = element.geometry.coordinates[0]
@@ -172,11 +178,11 @@ async function getLanguage() {
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
   const [selectedValue, setSelectedValue] = useState("java");
-  const [locations, setLocations] = useState([{id: "0", name: "loading", city:"none", distance:0, lat:0, lon:0}])
-  const [filteredLocations, setFilteredLocations] = useState([{id: "0", name: "loading", city:"none", distance:0, lat:0, lon:0}])
-  const [cameraButtons, setCameraButtons] = useState([{label: "temp", value: "", index:0}])
+  const [locations, setLocations] = useState([{id: "0", nameFI: "loading", nameEN: "loading", city:"none", distance:0, lat:0, lon:0}])
+  const [filteredLocations, setFilteredLocations] = useState([{id: "0", nameFI: "loading", nameEn: "loading", city:"none", distance:0, lat:0, lon:0}])
+  const [cameraButtons, setCameraButtons] = useState([{label: "loading", value: "", index:0}])
   const [initialized, setInitialized] = useState(false);
-  const [imageUri, setImageUri] = useState("https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg")
+  const [imageUri, setImageUri] = useState("") //https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg
   const [filterText, setFilterText] = useState("")
   const [lat, setLat] = useState(0.0)
   const [lon, setLon] = useState(0.0)
@@ -195,7 +201,10 @@ const App = () => {
   const changeLanguage = value => {
     i18n
       .changeLanguage(value)
-      .then(() => setLanguage(value))
+      .then(() => {
+        setLanguage(value)
+        filterChange("")
+      })
       .catch(err => console.log(err));
   };
 
@@ -232,7 +241,7 @@ const App = () => {
         
         let cameras =  await getCameraLocations()
         let sortedCameras = []
-        const location = await getLocation();
+        let location = await getLocation()
         if (location.length === 2) {
           setLat(location[0])
           setLon(location[1])
@@ -267,7 +276,9 @@ const App = () => {
                   }})
     if (granted) {
       //let locationSubscription = RNLocation.subscribeToLocationUpdates(locs => {
-      let loc = await RNLocation.getLatestLocation({ timeout: 60000 })
+      let loc = await RNLocation.getLatestLocation({ timeout: 60000 }).catch(e=> {
+        return []
+      })
       
       
       let lat1 = loc.latitude
@@ -395,9 +406,17 @@ const App = () => {
    setFilterText(text)
    let filtered = []
    locations.forEach(location => {
-     if (location.name.toLowerCase().includes(text.toLowerCase())) {
-       filtered.push(location)
+     if (language == "fi") {
+      if (location.nameFi.toLowerCase().includes(text.toLowerCase())) {
+        filtered.push(location)
+      }
      }
+     else if (language == "en") {
+      if (location.nameEn.toLowerCase().includes(text.toLowerCase())) {
+        filtered.push(location)
+      }
+     }
+
    })
    setFilteredLocations(filtered)
  }
@@ -417,6 +436,9 @@ const App = () => {
 
       setMaxDistance(locations[locations.length -1].distance)
 
+    }
+    else {
+      Alert.alert(t("nogps"))
     }
     if (sortMode == "distance") {
       let sorted = sortByDistance(location[0], location[1],locations )//sortByDistance(location[0], location[1], cameras)
@@ -446,16 +468,8 @@ const App = () => {
   if (view == "main")
   {
     return (
-      <SafeAreaView style={{flex:1, flexDirection:"column"}}>
+      <SafeAreaView style={styles.safeArea}>
         <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
-  
-        <View style={{flexDirection:"row", justifyContent:"flex-end"}}>
-  
-        <TouchableOpacity onPress={() => setView("settings")}>
-          <MaterialIcon name="settings" size={40} color="#aaa"/>
-        </TouchableOpacity>
-  
-        </View>
   
           <View style={{flexDirection:"row", justifyContent:"space-around"}}>
             <TextInput
@@ -472,10 +486,16 @@ const App = () => {
   
             </TouchableOpacity>
   
+
+    
+            <TouchableOpacity onPress={() => setView("settings")}>
+          <MaterialIcon name="settings" size={40} color="#aaa"/>
+        </TouchableOpacity>
+  
           </View>
           <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
   
-            <Text style={{marginLeft:"0%"}}>{t("currentlocation")}: {lat.toFixed(5)}, {lon.toFixed(5)} </Text>
+            <Text style={styles.infoText}>{t("currentlocation")}: {lat.toFixed(5)}, {lon.toFixed(5)} </Text>
   
   
             <TouchableOpacity onPress={() => showMap(lat, lon)}>
@@ -494,7 +514,7 @@ const App = () => {
   
           </View>
           <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
-            <Text>{t('sort')}: </Text>
+            <Text style={styles.infoText}>{t('sort')}: </Text>
             <Button
               mode="contained"
               color={sortMode == "distance" ? ACTIVEBUTTONCOLOR : BUTTONCOLOR}
@@ -527,7 +547,7 @@ const App = () => {
   
         <Picker
         selectedValue={selectedValue}
-        style={{height: 50, width: "100%"}}
+        style={{height: 40, width: "100%", }}
         onValueChange={loadButtons}
         >
         {filteredLocations.map((item, index) => {
@@ -547,7 +567,7 @@ const App = () => {
   
         <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
   
-          <Text>{t("cameralocation")}: {cameraLocation.lat.toFixed(5)}, {cameraLocation.lon.toFixed(5)}</Text>
+          <Text style={styles.infoText}>{t("cameralocation")}: {cameraLocation.lat.toFixed(5)}, {cameraLocation.lon.toFixed(5)}</Text>
   
           <TouchableOpacity onPress={() => showMap(cameraLocation.lat, cameraLocation.lon)}>
             <MaterialCommunityIcon name="google-maps" size={40} color="#f00"  />
@@ -583,7 +603,7 @@ const App = () => {
         <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
   
         <Image
-                style={{width: "100%", height: "100%",}}
+                style={{width: "100%", height: "100%"}}
                 source={{uri: imageUri}}
               />
   
@@ -595,7 +615,7 @@ const App = () => {
   else if (view == "settings"){
     return (
 
-      <SafeAreaView>
+      <SafeAreaView style={styles.safeArea}>
         <View style={{marginTop: "30%", height: "100%"}}>
           <Text style={{alignSelf: "center"}}>{t("chooselanguage")} {"\n"}
           
@@ -619,16 +639,16 @@ const App = () => {
           
           <View style={{flex:1}}>
             <Text style={{alignSelf: "center"}}>
-              Distributed under the
+              {t("license")}
               <TouchableOpacity onPress={() => Linking.openURL('https://choosealicense.com/licenses/mit/')}>
-                <Text style={{color: 'lightblue'}}> MIT </Text>
+                <Text style={{color: 'blue'}}> MIT </Text>
               </TouchableOpacity>
-              licence
+              
             </Text>
             <Text style={{alignSelf: "center"}}>
-              See repository in 
+              {t("repo")} 
               <TouchableOpacity onPress={() => Linking.openURL('https://github.com/MilanFIN/react-kelikamera')}>
-                <Text style={{color: 'lightblue'}}> GITHUB </Text>
+                <Text style={{color: 'blue'}}> GITHUB </Text>
               </TouchableOpacity>
 
             </Text>
@@ -641,7 +661,7 @@ const App = () => {
   }
   else {
     return (
-      <SafeAreaView>
+      <SafeAreaView style={styles.safeArea}>
       </SafeAreaView>
   
     )
@@ -660,7 +680,17 @@ const styles = StyleSheet.create({
   },
   buttonText:
   {
-    color:"#ffffff"
+    color:"#ffffff",
+    textAlign: "center"
+  },
+  safeArea: {
+    flex:1, 
+    flexDirection:"column",
+    backgroundColor: "#eaeaea",
+  },
+  infoText: {
+    marginLeft:"1%",
+    textAlignVertical: "center"
   }
 });
 

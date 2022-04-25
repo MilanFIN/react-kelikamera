@@ -6,7 +6,10 @@
 	  "sort": "Järjestä",
 	  "filter": "Suodata",
 	  "cameralocation": "Kameran sijainti",
-	  "chooselanguage": "Valitse kieli"
+	  "chooselanguage": "Valitse kieli",
+	  "repo": "Repo: ",
+	  "license": "Lisenssi: ",
+	  "nogps": "Sijainti ei ole saatavilla"
 
 
     }

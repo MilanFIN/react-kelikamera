@@ -6,7 +6,9 @@
 	  "sort": "Sort by",
 	  "filter": "Filter",
 	  "cameralocation": "Camera location",
-	  "chooselanguage": "Choose language"
-
+	  "chooselanguage": "Choose language",
+	  "repo": "Repository: ",
+	  "license": "License: ",
+	  "nogps": "Location not available"
     }
   }
