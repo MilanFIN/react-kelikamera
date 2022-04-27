@@ -178,11 +178,11 @@ async function getLanguage() {
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
   const [selectedValue, setSelectedValue] = useState("java");
-  const [locations, setLocations] = useState([{id: "0", nameFI: "loading", nameEN: "loading", city:"none", distance:0, lat:0, lon:0}])
-  const [filteredLocations, setFilteredLocations] = useState([{id: "0", nameFI: "loading", nameEn: "loading", city:"none", distance:0, lat:0, lon:0}])
+  const [locations, setLocations] = useState([{id: "0", nameFi: "loading", nameEn: "loading", city:"none", distance:0, lat:0, lon:0}])
+  const [filteredLocations, setFilteredLocations] = useState([{id: "0", nameFi: "loading", nameEn: "loading", city:"none", distance:0, lat:0, lon:0}])
   const [cameraButtons, setCameraButtons] = useState([{label: "loading", value: "", index:0}])
   const [initialized, setInitialized] = useState(false);
-  const [imageUri, setImageUri] = useState("") //https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg
+  const [imageUri, setImageUri] = useState("https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg") //https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg
   const [filterText, setFilterText] = useState("")
   const [lat, setLat] = useState(0.0)
   const [lon, setLon] = useState(0.0)
@@ -237,6 +237,11 @@ const App = () => {
           changeLanguage(lang)
 
         }
+        else {
+          changeLanguage("fi")
+          saveLanguage("fi")
+
+        }
 
         
         let cameras =  await getCameraLocations()
@@ -255,6 +260,15 @@ const App = () => {
           setSortMode("distance")
         }
         else {
+          setLat(0)
+          setLon(0)
+
+
+          cameras.forEach(l => {
+            l.distance = 0
+          })
+          setMaxDistance(100)
+
           sortedCameras = sortByCity(cameras)//sortByDistance(location[0], location[1], cameras)
           setSortMode("abc")
 
@@ -269,31 +283,25 @@ const App = () => {
 
  const getLocation = async() => {
 
-  let granted = await  RNLocation.requestPermission({
+  let ok = await RNLocation.requestPermission({
                   ios: "whenInUse",
                   android: {
-                    detail: "coarse"
-                  }})
-    if (granted) {
-      //let locationSubscription = RNLocation.subscribeToLocationUpdates(locs => {
-      let loc = await RNLocation.getLatestLocation({ timeout: 60000 }).catch(e=> {
-        return []
-      })
-      
-      
+                    detail: "coarse"}})
+
+  if (ok) {
+    let loc = await RNLocation.getLatestLocation({ timeout: 6000 })
+    if (loc != null) {
       let lat1 = loc.latitude
       let lon1 = loc.longitude
-
-
       return [lat1, lon1]
-
     }
     else {
-      console.log("no gps")
-      Alert.alert("Allow location permissions to sort cameras based on distance to current position")
       return []
-
     }
+  }
+  else {
+    return []
+  }
 
     
 
@@ -407,6 +415,7 @@ const App = () => {
    let filtered = []
    locations.forEach(location => {
      if (language == "fi") {
+
       if (location.nameFi.toLowerCase().includes(text.toLowerCase())) {
         filtered.push(location)
       }
