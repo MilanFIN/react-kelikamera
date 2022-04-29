@@ -1,5 +1,7 @@
 //flags from https://github.com/google/region-flags/
 
+//TODO: location refresh doesnt reorder list
+
 import React from 'react';
 import {
   Alert,
@@ -193,6 +195,8 @@ const App = () => {
   const [reverse, setReverse] = useState(false)
   const [view, setView] = useState("main")
   const [language, setLanguage] = useState("fi")
+  const [touchX, setTouchX] = useState(0)
+  const [touchY, setTouchY] = useState(0)
 
 
   const {t, i18n} = useTranslation();
@@ -444,19 +448,21 @@ const App = () => {
       })
 
       setMaxDistance(locations[locations.length -1].distance)
+      
+
+      locations.forEach(l => {
+        l.distance = getDistanceFromLatLonInKm(location[0], location[1], l.lat, l.lon)
+      })
+      let sorted = sortByDistance(location[0], location[1],locations )//sortByDistance(location[0], location[1], cameras)
+      setLocations(sorted)
+      setFilteredLocations(sorted)
+      setFilterText("")
+      setSortMode("distance")
 
     }
     else {
       Alert.alert(t("nogps"))
     }
-    if (sortMode == "distance") {
-      let sorted = sortByDistance(location[0], location[1],locations )//sortByDistance(location[0], location[1], cameras)
-      setLocations(sorted)
-      setFilteredLocations(sorted)
-      setFilterText("")
-
-
-    }  
   
  }
  const showMap = (latitude: number, longitude: number) => {
@@ -472,6 +478,25 @@ const App = () => {
 
   setView("main")
 
+ }
+
+ const swipe = async(direction:number) => {
+   let index = buttonIndex
+   if (direction > 0) {
+     console.log("left")
+     index += 1
+   }
+   else {
+     console.log("right")
+     index -= 1
+   }
+   if (index >= 0 && index < cameraButtons.length) {
+     let item = cameraButtons[index]
+      const url = item.value
+      setImageUri(url)
+      setButtonIndex(item.index)
+  
+   }
  }
 
   if (view == "main")
@@ -611,10 +636,26 @@ const App = () => {
         </View>
         <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
   
+        <View
+            onTouchStart={(e)=> {
+              setTouchX(e.nativeEvent.pageX)
+              setTouchY(e.nativeEvent.pageY)
+              }
+            }
+            onTouchEnd={(e) => {
+              if (Math.abs(touchX - e.nativeEvent.pageX) > 20 &&  Math.abs(touchY - e.nativeEvent.pageY) < 30) {
+                swipe(touchX - e.nativeEvent.pageX )
+              }
+            }}
+            //style={{height: 300, backgroundColor: '#ccc'}}
+        >
         <Image
                 style={{width: "100%", height: "100%"}}
                 source={{uri: imageUri}}
               />
+
+
+        </View>
   
   </View>
       </SafeAreaView>
