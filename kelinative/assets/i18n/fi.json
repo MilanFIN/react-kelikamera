@@ -9,7 +9,8 @@
 	  "chooselanguage": "Valitse kieli",
 	  "repo": "Repo: ",
 	  "license": "Lisenssi: ",
-	  "nogps": "Sijainti ei ole saatavilla"
+	  "nogps": "Sijainti ei ole saatavilla",
+	  "swipe": "Pyyhkäisy vaihtaa kuvaa"
 
 
     }

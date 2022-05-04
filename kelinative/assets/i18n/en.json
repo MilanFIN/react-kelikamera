@@ -9,6 +9,7 @@
 	  "chooselanguage": "Choose language",
 	  "repo": "Repository: ",
 	  "license": "License: ",
-	  "nogps": "Location not available"
+	  "nogps": "Location not available",
+	  "swipe": "Swipe to scroll through images"
     }
   }

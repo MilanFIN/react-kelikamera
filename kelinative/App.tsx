@@ -184,7 +184,7 @@ const App = () => {
   const [filteredLocations, setFilteredLocations] = useState([{id: "0", nameFi: "loading", nameEn: "loading", city:"none", distance:0, lat:0, lon:0}])
   const [cameraButtons, setCameraButtons] = useState([{label: "loading", value: "", index:0}])
   const [initialized, setInitialized] = useState(false);
-  const [imageUri, setImageUri] = useState("https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg") //https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg
+  const [imageUri, setImageUri] = useState("") //https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg
   const [filterText, setFilterText] = useState("")
   const [lat, setLat] = useState(0.0)
   const [lon, setLon] = useState(0.0)
@@ -504,49 +504,37 @@ const App = () => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
+          <View style={{flexDirection:"row", justifyContent:'space-between'}}>
   
-          <View style={{flexDirection:"row", justifyContent:"space-around"}}>
-            <TextInput
-              onChangeText={filterChange}
-              value={filterText}
-              placeholder={t("filter")}
-              style={{width:"80%"}}
-              ></TextInput>
-  
-  
-            <TouchableOpacity onPress={() => clearFilter()}>
-  
-            <MaterialIcon name="clear" size={40} color="#f00"  />
-  
-            </TouchableOpacity>
-  
-
-    
-            <TouchableOpacity onPress={() => setView("settings")}>
-          <MaterialIcon name="settings" size={40} color="#aaa"/>
-        </TouchableOpacity>
-  
-          </View>
-          <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
-  
+          <View style={{flexDirection: "row"}}>
             <Text style={styles.infoText}>{t("currentlocation")}: {lat.toFixed(5)}, {lon.toFixed(5)} </Text>
-  
-  
+
+
             <TouchableOpacity onPress={() => showMap(lat, lon)}>
-  
-            <MaterialCommunityIcon name="google-maps" size={40} color="#f00"   />
+
+              <MaterialCommunityIcon name="google-maps" size={40} color="#f00"   />
             </TouchableOpacity>
-  
+
             <Text> </Text>
-  
-  
-  
+
+
+
             <TouchableOpacity onPress={() => refreshLocation()}>
-            <MaterialIcon name="refresh" size={40} color="#0f0"  />
-          </TouchableOpacity>
-  
-  
+              <MaterialIcon name="refresh" size={40} color="#0f0"  />
+            </TouchableOpacity>
+
           </View>
+
+          <View style={{width: 40, height: 40,  marginRight: "0%"}}>
+          <TouchableOpacity onPress={() => setView("settings")} >
+              <MaterialIcon name="settings" size={40} color="#aaa"/>
+            </TouchableOpacity>
+
+
+          </View>
+
+        </View>
+
           <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
             <Text style={styles.infoText}>{t('sort')}: </Text>
             <Button
@@ -579,9 +567,32 @@ const App = () => {
   
           </View>
   
+          <View style={{flexDirection:"row", justifyContent:"space-around"}}>
+            <TextInput
+              onChangeText={filterChange}
+              value={filterText}
+              placeholder={t("filter")}
+              style={{width:"80%"}}
+              underlineColorAndroid={'grey'}
+
+              ></TextInput>
+  
+  
+            <TouchableOpacity onPress={() => clearFilter()}>
+  
+            <MaterialIcon name="clear" size={40} color="#f00"  />
+  
+            </TouchableOpacity>
+  
+
+    
+  
+          </View>
+
+        <View style={{borderWidth: 1, borderRadius: 10, borderColor: "grey" }}>
         <Picker
         selectedValue={selectedValue}
-        style={{height: 40, width: "100%", }}
+        style={{width: "100%", }}
         onValueChange={loadButtons}
         >
         {filteredLocations.map((item, index) => {
@@ -598,6 +609,9 @@ const App = () => {
         })
         }
         </Picker>
+
+
+        </View>
   
         <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
   
@@ -607,7 +621,7 @@ const App = () => {
             <MaterialCommunityIcon name="google-maps" size={40} color="#f00"  />
           </TouchableOpacity>
         </View>
-        <SafeAreaView style={{flex: 1,  height: 50, maxHeight: 50, width: "100%"}}>
+        <SafeAreaView style={{flex: 1,  height: 4500, maxHeight: 50, width: "100%"}}>
         <FlatList
             horizontal={true}
                 data={
@@ -633,9 +647,7 @@ const App = () => {
                 }/>
         </SafeAreaView>
   
-        </View>
-        <View style={{flex: 1,  marginTop: "0%", justifyContent:"flex-start"}}>
-  
+
         <View
             onTouchStart={(e)=> {
               setTouchX(e.nativeEvent.pageX)
@@ -647,17 +659,21 @@ const App = () => {
                 swipe(touchX - e.nativeEvent.pageX )
               }
             }}
-            //style={{height: 300, backgroundColor: '#ccc'}}
+            style={{flex:1, flexDirection: "column", alignItems:"flex-start"}}
         >
+        <Text style={{alignSelf: "center", color: "grey"}}>{t("swipe")}</Text>
+
         <Image
-                style={{width: "100%", height: "100%"}}
+                style={{width: "100%", height: "100%", alignSelf: "flex-start"}}
                 source={{uri: imageUri}}
               />
 
 
         </View>
   
-  </View>
+
+        </View>
+  
       </SafeAreaView>
     );
 
@@ -724,7 +740,7 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 10,
     //width: 50,
-    height: 50,
+    height: 45,
     justifyContent: 'center',
 
   },
