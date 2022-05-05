@@ -10,7 +10,9 @@
 	  "repo": "Repo: ",
 	  "license": "Lisenssi: ",
 	  "nogps": "Sijainti ei ole saatavilla",
-	  "swipe": "Pyyhkäisy vaihtaa kuvaa"
+	  "swipe": "Pyyhkäisy vaihtaa kuvaa",
+	  "temperature": "Lämpötila",
+	  "humidity": "Ilmankosteus"
 
 
     }

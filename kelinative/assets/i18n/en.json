@@ -10,6 +10,10 @@
 	  "repo": "Repository: ",
 	  "license": "License: ",
 	  "nogps": "Location not available",
-	  "swipe": "Swipe to scroll through images"
+	  "swipe": "Swipe to scroll through images",
+	  "temperature": "Temperature",
+	  "humidity": "Humidity"
+
+
     }
   }

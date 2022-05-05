@@ -150,6 +150,37 @@ async function getCameraData(id:string) {
     }
   
 }
+
+async function getTemperatureAndHumidity(id: string) {
+  try {
+    let response = await fetch(
+      "https://tie.digitraffic.fi/api/v1/data/weather-data/1010",
+    );
+    let responseJson = await response.json();
+    let temp = ""
+    let hum = ""
+    Object.keys(responseJson.weatherStations[0].sensorValues).forEach(elem => {
+      let name = responseJson.weatherStations[0].sensorValues[elem].name
+      console.log(name)
+      if (name == "ILMA") {
+        temp = responseJson.weatherStations[0].sensorValues[elem].sensorValue
+      }
+      else if (name == "ILMAN_KOSTEUS") {
+        hum = responseJson.weatherStations[0].sensorValues[elem].sensorValue
+      }
+    })
+    let result = [temp, hum] //responseJson.weatherStations[0].sensorValues[0].sensorValue
+
+
+    return result;
+    } catch (error) {
+    console.error(error);
+    return []
+    }
+
+}
+
+
 async function saveLanguage(language) {
   try {
     await AsyncStorage.setItem(
@@ -197,6 +228,8 @@ const App = () => {
   const [language, setLanguage] = useState("fi")
   const [touchX, setTouchX] = useState(0)
   const [touchY, setTouchY] = useState(0)
+  const [temperature, setTemperature] = useState("")
+  const [humidity, setHumidity] = useState("")
 
 
   const {t, i18n} = useTranslation();
@@ -322,6 +355,13 @@ const App = () => {
 
   setImageUri(buttons[0].value)
   setButtonIndex(0)
+  let weather = await getTemperatureAndHumidity(id)
+  console.log(weather)
+  if (weather.length != 0) {
+    setTemperature(weather[0])
+    setHumidity(weather[1])
+  }
+
 }
 
  const loadButtons = async(itemValue:string, itemIndex:number) => {
@@ -337,6 +377,13 @@ const App = () => {
 
     setImageUri(buttons[0].value)
     setButtonIndex(0)
+
+    let weather = await getTemperatureAndHumidity(itemValue)
+    console.log(weather)
+    if (weather.length != 0) {
+      setTemperature(weather[0])
+      setHumidity(weather[1])
+    }
 
 
  }
@@ -616,11 +663,15 @@ const App = () => {
         <View style={{flexDirection:"row", justifyContent:"flex-start"}}>
   
           <Text style={styles.infoText}>{t("cameralocation")}: {cameraLocation.lat.toFixed(5)}, {cameraLocation.lon.toFixed(5)}</Text>
-  
+
           <TouchableOpacity onPress={() => showMap(cameraLocation.lat, cameraLocation.lon)}>
             <MaterialCommunityIcon name="google-maps" size={40} color="#f00"  />
           </TouchableOpacity>
         </View>
+        <Text style={styles.infoText}>{t("temperature")}: {temperature} {"°C"}</Text>
+        <Text style={styles.infoText}>{t("humidity")}: {humidity} {"%"}</Text>
+        <Text></Text>
+
         <SafeAreaView style={{flex: 1,  height: 4500, maxHeight: 50, width: "100%"}}>
         <FlatList
             horizontal={true}
