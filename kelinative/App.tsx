@@ -103,6 +103,7 @@ async function getCameraLocations() {
   let cameras = []
   responseJson.features.forEach(element => {
     let id = element.properties.id
+    let weather = element.properties.nearestWeatherStationId
     let nameFi = element.properties.names.fi
     let nameEn = element.properties.names.en
     if (nameEn == null) {
@@ -118,7 +119,7 @@ async function getCameraLocations() {
     let distance = 0
     let status = element.properties.collectionStatus
     if (status == "GATHERING") {
-      cameras.push({nameFi: nameFi + ", " + mun , nameEn:nameEn +", " + mun,  id: id, lat: x, lon:y, city:city, distance: distance})
+      cameras.push({nameFi: nameFi + ", " + mun , nameEn:nameEn +", " + mun,  id: id, lat: x, lon:y, city:city, distance: distance, weather: weather})
 
     }
   });
@@ -138,7 +139,7 @@ async function getCameraData(id:string) {
     );
     let responseJson = await response.json();
     let result = []
-    console.log(responseJson)
+
     responseJson.cameraStations[0].cameraPresets.forEach((val, index) => {
       result.push({"label": val.presentationName, value: val.imageUrl, index: index})
     });
@@ -154,22 +155,26 @@ async function getCameraData(id:string) {
 async function getTemperatureAndHumidity(id: string) {
   try {
     let response = await fetch(
-      "https://tie.digitraffic.fi/api/v1/data/weather-data/1010",
+      "https://tie.digitraffic.fi/api/v1/data/weather-data/" + id,
     );
     let responseJson = await response.json();
     let temp = ""
+    let temp2 = ""
     let hum = ""
     Object.keys(responseJson.weatherStations[0].sensorValues).forEach(elem => {
       let name = responseJson.weatherStations[0].sensorValues[elem].name
-      console.log(name)
       if (name == "ILMA") {
         temp = responseJson.weatherStations[0].sensorValues[elem].sensorValue
+      }
+      if (name == "TIE_1") {
+        temp2 = responseJson.weatherStations[0].sensorValues[elem].sensorValue
+
       }
       else if (name == "ILMAN_KOSTEUS") {
         hum = responseJson.weatherStations[0].sensorValues[elem].sensorValue
       }
     })
-    let result = [temp, hum] //responseJson.weatherStations[0].sensorValues[0].sensorValue
+    let result = [temp, temp2, hum] //responseJson.weatherStations[0].sensorValues[0].sensorValue
 
 
     return result;
@@ -215,7 +220,7 @@ const App = () => {
   const [filteredLocations, setFilteredLocations] = useState([{id: "0", nameFi: "loading", nameEn: "loading", city:"none", distance:0, lat:0, lon:0}])
   const [cameraButtons, setCameraButtons] = useState([{label: "loading", value: "", index:0}])
   const [initialized, setInitialized] = useState(false);
-  const [imageUri, setImageUri] = useState("") //https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg
+  const [imageUri, setImageUri] = useState("https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg") //https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg
   const [filterText, setFilterText] = useState("")
   const [lat, setLat] = useState(0.0)
   const [lon, setLon] = useState(0.0)
@@ -229,6 +234,8 @@ const App = () => {
   const [touchX, setTouchX] = useState(0)
   const [touchY, setTouchY] = useState(0)
   const [temperature, setTemperature] = useState("")
+  const [temp2, setTemp2] = useState("")
+
   const [humidity, setHumidity] = useState("")
 
 
@@ -248,7 +255,7 @@ const App = () => {
   useEffect(() => {
     const backAction = () => {
       
-      console.log(view)
+
       if (view != "main") {
         setView("main")
         return true;
@@ -313,7 +320,8 @@ const App = () => {
         setLocations(sortedCameras)
         setFilteredLocations(sortedCameras)
 
-        loadInitial(sortedCameras[0].id, sortedCameras[0].lat, sortedCameras[0].lon)
+        console.log(sortedCameras[0])
+        loadInitial(sortedCameras[0].id, sortedCameras[0].lat, sortedCameras[0].lon, sortedCameras[0].weather)
 
     })()
   }, []);
@@ -346,7 +354,8 @@ const App = () => {
 
  }
 
- const loadInitial = async(id:string, latitude:number, lognitude:number) => {
+ const loadInitial = async(id:string, latitude:number, lognitude:number, weather:string) => {
+   console.log("WEATHER", weather)
   //setSelectedValue(itemValue)
   let buttons = await getCameraData(id)
   setCameraLocation({lat: latitude, lon:lognitude})
@@ -355,11 +364,11 @@ const App = () => {
 
   setImageUri(buttons[0].value)
   setButtonIndex(0)
-  let weather = await getTemperatureAndHumidity(id)
-  console.log(weather)
-  if (weather.length != 0) {
-    setTemperature(weather[0])
-    setHumidity(weather[1])
+  let weatherData = await getTemperatureAndHumidity(weather)
+  if (weatherData.length != 0) {
+    setTemperature(weatherData[0])
+    setTemp2(weatherData[1])
+    setHumidity(weatherData[2])
   }
 
 }
@@ -378,13 +387,13 @@ const App = () => {
     setImageUri(buttons[0].value)
     setButtonIndex(0)
 
-    let weather = await getTemperatureAndHumidity(itemValue)
-    console.log(weather)
-    if (weather.length != 0) {
-      setTemperature(weather[0])
-      setHumidity(weather[1])
+    let weatherData = await getTemperatureAndHumidity(filteredLocations[itemIndex].weather)
+    if (weatherData.length != 0) {
+      setTemperature(weatherData[0])
+      setTemp2(weatherData[1])
+      setHumidity(weatherData[2])
     }
-
+  
 
  }
 
@@ -455,7 +464,7 @@ const App = () => {
  }
 
  const imageButton = async(item) => {
-  console.log(item)
+
   const url = item.value
   setImageUri(url)
   setButtonIndex(item.index)
@@ -517,7 +526,7 @@ const App = () => {
  }
 
  const pickLanguage = async(lang:string) => {
-  console.log(lang)
+
   setLanguage(lang)
   await saveLanguage(lang)
 
@@ -668,7 +677,7 @@ const App = () => {
             <MaterialCommunityIcon name="google-maps" size={40} color="#f00"  />
           </TouchableOpacity>
         </View>
-        <Text style={styles.infoText}>{t("temperature")}: {temperature} {"°C"}</Text>
+        <Text style={styles.infoText}>{t("temperature")}: {t("air")}: {temperature} {"°C"}; {t("roadsurface")}: {temp2} {"°C"}</Text>
         <Text style={styles.infoText}>{t("humidity")}: {humidity} {"%"}</Text>
         <Text></Text>
 

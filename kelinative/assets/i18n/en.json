@@ -12,7 +12,10 @@
 	  "nogps": "Location not available",
 	  "swipe": "Swipe to scroll through images",
 	  "temperature": "Temperature",
-	  "humidity": "Humidity"
+	  "humidity": "Humidity",
+	  "air": "Air",
+	  "roadsurface": "Road surface"
+
 
 
     }

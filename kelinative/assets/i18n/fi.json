@@ -12,7 +12,9 @@
 	  "nogps": "Sijainti ei ole saatavilla",
 	  "swipe": "Pyyhkäisy vaihtaa kuvaa",
 	  "temperature": "Lämpötila",
-	  "humidity": "Ilmankosteus"
+	  "humidity": "Ilmankosteus",
+	  "air": "Ilma",
+	  "roadsurface": "Tienpinta"
 
 
     }
