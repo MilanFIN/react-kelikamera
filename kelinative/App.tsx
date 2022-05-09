@@ -2,7 +2,7 @@
 
 //TODO: location refresh doesnt reorder list
 
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   Alert,
   PermissionsAndroid,
@@ -237,10 +237,30 @@ const App = () => {
   const [temp2, setTemp2] = useState("")
 
   const [humidity, setHumidity] = useState("")
-
+  const [lastFilterModTime, setLastFilterModTime] = useState(new Date())
+  const timeoutRef = React.useRef(null);
 
   const {t, i18n} = useTranslation();
   
+
+  function reloadFirstCamera() {
+    if (filteredLocations.length > 0) {
+      let camera = filteredLocations[0]
+      loadInitial(camera.id, camera.lat, camera.lon, camera.weather)
+    }
+  }
+
+  React.useEffect(() => {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+    }
+     
+    timeoutRef.current = setTimeout(()=> {
+      timeoutRef.current = null;
+      //filterText !== '' ? reloadFirstCamera() : null;
+      reloadFirstCamera()
+    },2000);
+  },[filterText]);
   
   const changeLanguage = value => {
     i18n
@@ -320,7 +340,6 @@ const App = () => {
         setLocations(sortedCameras)
         setFilteredLocations(sortedCameras)
 
-        console.log(sortedCameras[0])
         loadInitial(sortedCameras[0].id, sortedCameras[0].lat, sortedCameras[0].lon, sortedCameras[0].weather)
 
     })()
@@ -355,7 +374,6 @@ const App = () => {
  }
 
  const loadInitial = async(id:string, latitude:number, lognitude:number, weather:string) => {
-   console.log("WEATHER", weather)
   //setSelectedValue(itemValue)
   let buttons = await getCameraData(id)
   setCameraLocation({lat: latitude, lon:lognitude})
@@ -470,6 +488,32 @@ const App = () => {
   setButtonIndex(item.index)
  }
 
+
+
+ /*
+ const triggerDelayedButtonLoad = async(date:Date, filterModTime:Date) => {
+   console.log(date, filterModTime)
+  if (date == filterModTime && filteredLocations.length > 0) {
+    let camera = filteredLocations[0]
+    loadInitial(camera.id, camera.lat, camera.lon, camera.weather)
+    console.log("LOAD")
+  }
+  else {
+    console.log("NOPE")
+  }
+ }
+
+ const delayedButtonLoad = async() => {
+   const current = new Date() 
+   console.log("SET: ", current)
+   setLastFilterModTime(current)
+   const modTimeRef = useRef(lastFilterModTime);
+   modTimeRef.current = lastFilterModTime;
+   setTimeout(function() { triggerDelayedButtonLoad(current, modTimeRef.current); }, 5000);
+
+ }
+ */
+
  const filterChange = async(text:string) => {
    setFilterText(text)
    let filtered = []
@@ -488,6 +532,8 @@ const App = () => {
 
    })
    setFilteredLocations(filtered)
+   //delayedButtonLoad()
+
  }
 
  const clearFilter = async() => {
