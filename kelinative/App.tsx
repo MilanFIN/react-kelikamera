@@ -220,7 +220,7 @@ const App = () => {
   const [filteredLocations, setFilteredLocations] = useState([{id: "0", nameFi: "loading", nameEn: "loading", city:"none", distance:0, lat:0, lon:0}])
   const [cameraButtons, setCameraButtons] = useState([{label: "loading", value: "", index:0}])
   const [initialized, setInitialized] = useState(false);
-  const [imageUri, setImageUri] = useState("https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg") //https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg
+  const [imageUri, setImageUri] = useState("") //https://i.kym-cdn.com/entries/icons/facebook/000/026/981/0bd0ed742059cd7f4c83882095aeb3752e45dfbfv2_hq.jpg
   const [filterText, setFilterText] = useState("")
   const [lat, setLat] = useState(0.0)
   const [lon, setLon] = useState(0.0)
