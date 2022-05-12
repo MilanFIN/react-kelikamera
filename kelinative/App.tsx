@@ -244,7 +244,7 @@ const App = () => {
   
 
   function reloadFirstCamera() {
-    if (filteredLocations.length > 0) {
+    if (filteredLocations.length > 0 && initialized) {
       let camera = filteredLocations[0]
       loadInitial(camera.id, camera.lat, camera.lon, camera.weather)
     }
@@ -388,6 +388,7 @@ const App = () => {
     setTemp2(weatherData[1])
     setHumidity(weatherData[2])
   }
+  setInitialized(true)
 
 }
 
